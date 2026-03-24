@@ -1,14 +1,15 @@
 import { memo } from 'react';
 import type { TransferPlayer } from '@/app/data/transferData';
-import { Award, TrendingUp, ExternalLink, ArrowRight } from 'lucide-react';
+import { Award, TrendingUp, ExternalLink, ArrowRight, History } from 'lucide-react';
 
 interface PlayerCardProps {
   player: TransferPlayer;
   onClick: (player: TransferPlayer) => void;
   isSelected: boolean;
+  onCareerClick: (player: TransferPlayer) => void;
 }
 
-export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected }: PlayerCardProps) {
+export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected, onCareerClick }: PlayerCardProps) {
   const getAvailabilityStyle = (availability: string) => {
     switch (availability) {
       case 'Available':
@@ -39,7 +40,7 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected
               {player.position}
             </span>
             <span className="bg-card-elevated text-muted-foreground px-2 py-0.5 rounded-md">
-              {player.year}
+              {player.year ?? '—'}
             </span>
           </div>
         </div>
@@ -75,19 +76,19 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected
       <div className="grid grid-cols-4 gap-3 pt-3 border-t border-border">
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">PPG</div>
-          <div className="text-sm font-semibold text-primary">{player.stats.ppg}</div>
+          <div className="text-sm font-semibold text-primary">{player.stats.ppg.toFixed(2)}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">RPG</div>
-          <div className="text-sm font-semibold text-foreground">{player.stats.rpg}</div>
+          <div className="text-sm font-semibold text-foreground">{player.stats.rpg.toFixed(2)}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">APG</div>
-          <div className="text-sm font-semibold text-foreground">{player.stats.apg}</div>
+          <div className="text-sm font-semibold text-foreground">{player.stats.apg.toFixed(2)}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">FG%</div>
-          <div className="text-sm font-semibold text-foreground">{player.stats.fgPercentage.toFixed(1)}%</div>
+          <div className="text-sm font-semibold text-foreground">{player.stats.fgPercentage.toFixed(2)}%</div>
         </div>
       </div>
 
@@ -96,37 +97,37 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">3PT%</div>
           <div className="text-xs text-foreground">
             {player.stats.threePointPercentage > 0
-              ? `${player.stats.threePointPercentage.toFixed(1)}%`
+              ? `${player.stats.threePointPercentage.toFixed(2)}%`
               : 'N/A'}
           </div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">FT%</div>
-          <div className="text-xs text-foreground">{player.stats.ftPercentage.toFixed(1)}%</div>
+          <div className="text-xs text-foreground">{player.stats.ftPercentage.toFixed(2)}%</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">MPG</div>
-          <div className="text-xs text-foreground">{player.stats.minutesPerGame.toFixed(1)}</div>
+          <div className="text-xs text-foreground">{player.stats.minutesPerGame.toFixed(2)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-2 pt-2 border-t border-border">
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">TS%</div>
-          <div className="text-xs text-foreground">{player.stats.tsPercentage > 0 ? `${player.stats.tsPercentage.toFixed(1)}%` : 'N/A'}</div>
+          <div className="text-xs text-foreground">{player.stats.tsPercentage > 0 ? `${player.stats.tsPercentage.toFixed(2)}%` : 'N/A'}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">OBPM</div>
-          <div className="text-xs text-foreground">{player.stats.obpm !== 0 ? player.stats.obpm.toFixed(1) : 'N/A'}</div>
+          <div className="text-xs text-foreground">{player.stats.obpm !== 0 ? player.stats.obpm.toFixed(2) : 'N/A'}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DBPM</div>
-          <div className="text-xs text-foreground">{player.stats.dbpm !== 0 ? player.stats.dbpm.toFixed(1) : 'N/A'}</div>
+          <div className="text-xs text-foreground">{player.stats.dbpm !== 0 ? player.stats.dbpm.toFixed(2) : 'N/A'}</div>
         </div>
       </div>
 
       {player.playerLink && (
-        <div className="mt-3 pt-2 border-t border-border">
+        <div className="mt-3 pt-2 border-t border-border flex items-center gap-4">
           <a
             href={player.playerLink}
             target="_blank"
@@ -137,6 +138,13 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, isSelected
             <ExternalLink className="w-3 h-3" />
             View Profile
           </a>
+          <button
+            onClick={(e) => { e.stopPropagation(); onCareerClick(player); }}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <History className="w-3 h-3" />
+            Career
+          </button>
         </div>
       )}
 

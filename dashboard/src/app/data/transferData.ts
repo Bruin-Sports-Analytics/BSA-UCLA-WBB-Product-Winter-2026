@@ -1,6 +1,6 @@
 /**
  * Transfer dashboard data layer.
- * Parses real CSV data from Sports Reference via Vite's ?raw import.
+ * Fetches CSV data from /data/ at runtime (served from dashboard/public/data/).
  */
 
 import type { GoldPlayerPerGame, TransferPlayer, TransferStatus } from './schema';
@@ -9,10 +9,9 @@ import { getConference } from './conferences';
 
 export type { TransferPlayer } from './schema';
 
-import csvRaw from './sr_data_2025.csv?raw';
-import advancedRaw from './sr_advanced_2025.csv?raw';
-import on3Raw from './on3_wbb_transfers_2025.csv?raw';
-import classYearRaw from './sr_class_years_2025.csv?raw';
+// ---------------------------------------------------------------------------
+// CSV parsing utilities (unchanged)
+// ---------------------------------------------------------------------------
 
 function parseCSV(raw: string): Record<string, string>[] {
   const lines = raw.trim().split('\n');
@@ -33,6 +32,11 @@ function num(val: string | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
+// ---------------------------------------------------------------------------
+// 2025-only: ON3 transfer data
+// CRITICAL: preserve these exact column name strings — they match the CSV headers
+// ---------------------------------------------------------------------------
+
 interface On3TransferRecord {
   name: string;
   classRank: string;
@@ -42,8 +46,8 @@ interface On3TransferRecord {
   date: string;
 }
 
-function parseOn3Transfers(): Map<string, On3TransferRecord> {
-  const rows = parseCSV(on3Raw);
+function parseOn3Transfers(raw: string): Map<string, On3TransferRecord> {
+  const rows = parseCSV(raw);
   const byName = new Map<string, On3TransferRecord>();
 
   for (const r of rows) {
@@ -65,7 +69,6 @@ function parseOn3Transfers(): Map<string, On3TransferRecord> {
     }
   }
 
-  // Remove withdrawn players
   for (const [key, record] of byName) {
     if (record.status === 'Withdrawn') {
       byName.delete(key);
@@ -92,8 +95,12 @@ function stripMascot(fullTeamName: string): string {
   return parts.slice(0, -1).join(' ');
 }
 
-function parseClassYears(): Map<string, string> {
-  const rows = parseCSV(classYearRaw);
+// ---------------------------------------------------------------------------
+// 2025-only: class year data
+// ---------------------------------------------------------------------------
+
+function parseClassYears(raw: string): Map<string, string> {
+  const rows = parseCSV(raw);
   const byLink = new Map<string, string>();
   for (const r of rows) {
     const link = (r['player_sr_link'] || '').trim();
@@ -103,8 +110,12 @@ function parseClassYears(): Map<string, string> {
   return byLink;
 }
 
-function parseAdvancedStats(): Map<string, { tsPercentage: number; obpm: number; dbpm: number }> {
-  const rows = parseCSV(advancedRaw);
+// ---------------------------------------------------------------------------
+// Advanced stats (all years)
+// ---------------------------------------------------------------------------
+
+function parseAdvancedStats(raw: string): Map<string, { tsPercentage: number; obpm: number; dbpm: number }> {
+  const rows = parseCSV(raw);
   const byLink = new Map<string, { tsPercentage: number; obpm: number; dbpm: number }>();
   for (const r of rows) {
     const link = (r['player_sr_link'] || '').trim();
@@ -118,11 +129,23 @@ function parseAdvancedStats(): Map<string, { tsPercentage: number; obpm: number;
   return byLink;
 }
 
-export function getTransferPlayers(): TransferPlayer[] {
-  const on3Map = parseOn3Transfers();
-  const advancedMap = parseAdvancedStats();
-  const classYearMap = parseClassYears();
-  const rows = parseCSV(csvRaw);
+// ---------------------------------------------------------------------------
+// Core fetch + parse function
+// ---------------------------------------------------------------------------
+
+async function fetchText(path: string): Promise<string> {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status} ${res.statusText}`);
+  return res.text();
+}
+
+function buildPlayers(
+  rows: Record<string, string>[],
+  advancedMap: Map<string, { tsPercentage: number; obpm: number; dbpm: number }>,
+  on3Map: Map<string, On3TransferRecord>,
+  classYearMap: Map<string, string>,
+  year: number
+): TransferPlayer[] {
   return rows.map((r, i) => {
     const gold: GoldPlayerPerGame = {
       player_sr_link: r.player_sr_link,
@@ -141,9 +164,9 @@ export function getTransferPlayers(): TransferPlayer[] {
       stl_per_g: num(r.stl_per_g),
       blk_per_g: num(r.blk_per_g),
     };
-    // Class year priority: SR roster data > default
+
     const srClass = classYearMap.get(r.player_sr_link || '');
-    const classYear = srClass ? mapClassRank(srClass) : 'Junior';
+    const classYear = srClass ? mapClassRank(srClass) : null;
 
     const player: TransferPlayer = {
       ...goldToTransferPlayer(gold, i, {
@@ -155,10 +178,8 @@ export function getTransferPlayers(): TransferPlayer[] {
       }),
     };
 
-    // Set conference from school slug
     player.conference = getConference(r.school || '');
 
-    // Cross-reference with advanced stats
     const advanced = advancedMap.get(r.player_sr_link || '');
     if (advanced) {
       player.stats.tsPercentage = advanced.tsPercentage;
@@ -166,18 +187,59 @@ export function getTransferPlayers(): TransferPlayer[] {
       player.stats.dbpm = advanced.dbpm;
     }
 
-    // Cross-reference with ON3 transfer data
-    const on3 = on3Map.get(player.name.toLowerCase().trim());
-    if (on3) {
-      player.transferInfo = {
-        classYear: mapClassRank(on3.classRank),
-        previousTeam: on3.previousTeam,
-        newTeam: on3.status === 'Committed' ? stripMascot(on3.newTeam) : null,
-        status: on3.status as TransferStatus,
-      };
-      player.availability = on3.status === 'Committed' ? 'Committed' : 'Available';
+    if (year === 2025) {
+      const on3 = on3Map.get(player.name.toLowerCase().trim());
+      if (on3) {
+        player.transferInfo = {
+          classYear: mapClassRank(on3.classRank),
+          previousTeam: on3.previousTeam,
+          newTeam: on3.status === 'Committed' ? stripMascot(on3.newTeam) : null,
+          status: on3.status as TransferStatus,
+        };
+        player.availability = on3.status === 'Committed' ? 'Committed' : 'Available';
+      }
     }
 
     return player;
   });
+}
+
+async function fetchTextOptional(path: string): Promise<string | null> {
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return null;
+    return res.text();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchYearData(year: number): Promise<TransferPlayer[]> {
+  let on3Map = new Map<string, On3TransferRecord>();
+
+  if (year === 2025) {
+    // Fetch all 4 CSVs in parallel for 2025
+    const [basicRaw, advancedRaw, on3Raw, classYearRaw] = await Promise.all([
+      fetchText(`/data/sr_data_${year}.csv`),
+      fetchText(`/data/sr_advanced_${year}.csv`),
+      fetchText('/data/on3_wbb_transfers_2025.csv'),
+      fetchTextOptional(`/data/sr_class_years_${year}.csv`),
+    ]);
+    on3Map = parseOn3Transfers(on3Raw);
+    const classYearMap = classYearRaw ? parseClassYears(classYearRaw) : new Map<string, string>();
+    const advancedMap = parseAdvancedStats(advancedRaw);
+    const rows = parseCSV(basicRaw);
+    return buildPlayers(rows, advancedMap, on3Map, classYearMap, year);
+  } else {
+    // Non-2025: basic + advanced + class years (if scraped)
+    const [basicRaw, advancedRaw, classYearRaw] = await Promise.all([
+      fetchText(`/data/sr_data_${year}.csv`),
+      fetchText(`/data/sr_advanced_${year}.csv`),
+      fetchTextOptional(`/data/sr_class_years_${year}.csv`),
+    ]);
+    const classYearMap = classYearRaw ? parseClassYears(classYearRaw) : new Map<string, string>();
+    const advancedMap = parseAdvancedStats(advancedRaw);
+    const rows = parseCSV(basicRaw);
+    return buildPlayers(rows, advancedMap, on3Map, classYearMap, year);
+  }
 }

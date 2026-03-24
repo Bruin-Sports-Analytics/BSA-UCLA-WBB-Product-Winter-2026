@@ -11,12 +11,12 @@ export function PlayerSummaryCards({ players }: PlayerSummaryCardsProps) {
     const pts = player.stats.ppg;
     const fga = pts / (player.stats.fgPercentage / 100) || 1;
     const fta = pts / 5;
-    return (((pts / (2 * (fga + 0.44 * fta))) * 100) || 0).toFixed(1);
+    return (((pts / (2 * (fga + 0.44 * fta))) * 100) || 0).toFixed(2);
   };
 
   const calculateUsagePct = (player: TransferPlayer) => {
     const mpg = player.stats.minutesPerGame || 1;
-    return ((player.stats.ppg / mpg) * 20).toFixed(1);
+    return ((player.stats.ppg / mpg) * 20).toFixed(2);
   };
 
   return (
@@ -49,15 +49,15 @@ export function PlayerSummaryCards({ players }: PlayerSummaryCardsProps) {
             <div className="grid grid-cols-3 gap-3 mb-4 pb-4 border-b border-gray-700">
               <div>
                 <div className="text-xs text-gray-500 mb-1">PPG</div>
-                <div className="text-lg text-white">{player.stats.ppg}</div>
+                <div className="text-lg text-white">{player.stats.ppg.toFixed(2)}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">RPG</div>
-                <div className="text-lg text-white">{player.stats.rpg}</div>
+                <div className="text-lg text-white">{player.stats.rpg.toFixed(2)}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">APG</div>
-                <div className="text-lg text-white">{player.stats.apg}</div>
+                <div className="text-lg text-white">{player.stats.apg.toFixed(2)}</div>
               </div>
             </div>
             <div className="space-y-2">
@@ -71,11 +71,11 @@ export function PlayerSummaryCards({ players }: PlayerSummaryCardsProps) {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-400">FG%</span>
-                <span className="text-white">{player.stats.fgPercentage}%</span>
+                <span className="text-white">{player.stats.fgPercentage.toFixed(2)}%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-400">Minutes/Game</span>
-                <span className="text-white">{player.stats.minutesPerGame}</span>
+                <span className="text-white">{player.stats.minutesPerGame.toFixed(2)}</span>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700">
@@ -88,7 +88,7 @@ export function PlayerSummaryCards({ players }: PlayerSummaryCardsProps) {
                   <div className="text-xs text-gray-500 mb-1">3PT%</div>
                   <div className="text-lg text-white">
                     {player.stats.threePointPercentage > 0
-                      ? `${player.stats.threePointPercentage}%`
+                      ? `${player.stats.threePointPercentage.toFixed(2)}%`
                       : 'N/A'}
                   </div>
                 </div>

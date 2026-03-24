@@ -19,9 +19,11 @@ interface FilterPanelProps {
   onFilterChange: (filters: FilterState) => void;
   teams: string[];
   conferences: string[];
+  activeYear: number;
+  onYearChange: (year: number) => void;
 }
 
-export function FilterPanel({ filters, onFilterChange, teams, conferences }: FilterPanelProps) {
+export function FilterPanel({ filters, onFilterChange, teams, conferences, activeYear, onYearChange }: FilterPanelProps) {
   const [teamSearch, setTeamSearch] = useState('');
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [confSearch, setConfSearch] = useState('');
@@ -109,17 +111,45 @@ export function FilterPanel({ filters, onFilterChange, teams, conferences }: Fil
       </div>
 
       <div className="space-y-5">
+        <div>
+          <label className="block text-xs text-muted-foreground uppercase tracking-wider mb-2">Season</label>
+          <select
+            value={activeYear}
+            onChange={(e) => onYearChange(Number(e.target.value))}
+            className="w-full px-3 py-2 bg-card-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40"
+          >
+            {Array.from({ length: 10 }, (_, i) => 2026 - i).map((year) => (
+              <option key={year} value={year}>
+                {year - 1}–{String(year).slice(2)} season
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex items-center justify-between">
-          <label className="text-sm text-muted-foreground">Transfer Only</label>
+          <div>
+            <label className="text-sm text-muted-foreground">Transfer Only</label>
+            {activeYear !== 2025 && (
+              <p className="text-[10px] text-muted-foreground opacity-60">2025 data only</p>
+            )}
+          </div>
           <button
-            onClick={() => onFilterChange({ ...filters, transferOnly: !filters.transferOnly })}
+            onClick={() => activeYear === 2025 && onFilterChange({ ...filters, transferOnly: !filters.transferOnly })}
+            disabled={activeYear !== 2025}
+            title={activeYear !== 2025 ? 'Transfer portal data is only available for the 2025 season' : undefined}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              filters.transferOnly ? 'bg-primary' : 'bg-card-elevated'
+              activeYear !== 2025
+                ? 'opacity-40 cursor-not-allowed bg-card-elevated'
+                : filters.transferOnly
+                ? 'bg-primary'
+                : 'bg-card-elevated'
             }`}
           >
             <span
               className={`inline-block h-3.5 w-3.5 transform rounded-full transition-transform ${
-                filters.transferOnly ? 'translate-x-[1.125rem] bg-primary-foreground' : 'translate-x-0.5 bg-muted-foreground'
+                filters.transferOnly && activeYear === 2025
+                  ? 'translate-x-[1.125rem] bg-primary-foreground'
+                  : 'translate-x-0.5 bg-muted-foreground'
               }`}
             />
           </button>

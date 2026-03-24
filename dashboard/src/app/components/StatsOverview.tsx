@@ -24,16 +24,16 @@ export function StatsOverview({ players }: StatsOverviewProps) {
 
   const avgPPG = (
     players.reduce((sum, p) => sum + p.stats.ppg, 0) / players.length
-  ).toFixed(1);
+  ).toFixed(2);
   const avgRPG = (
     players.reduce((sum, p) => sum + p.stats.rpg, 0) / players.length
-  ).toFixed(1);
+  ).toFixed(2);
   const avgAPG = (
     players.reduce((sum, p) => sum + p.stats.apg, 0) / players.length
-  ).toFixed(1);
+  ).toFixed(2);
   const avgFG = (
     players.reduce((sum, p) => sum + p.stats.fgPercentage, 0) / players.length
-  ).toFixed(1);
+  ).toFixed(2);
 
   const stats = [
     { label: 'Avg PPG', value: avgPPG, icon: Goal, accent: 'from-yellow-500/20 to-transparent', iconColor: 'text-yellow-400' },

@@ -57,7 +57,7 @@ export interface TransferPlayer {
   position: Position;
   previousSchool: string;
   conference: string;
-  year: Year;
+  year: Year | null;
   height: string;
   stats: {
     ppg: number;
@@ -94,7 +94,7 @@ export function goldToTransferPlayer(
     position,
     previousSchool: overrides?.previousSchool ?? row.team_name_abbr ?? 'Unknown',
     conference: '',
-    year: overrides?.year ?? 'Junior',
+    year: overrides && 'year' in overrides ? overrides.year ?? null : null,
     height: overrides?.height ?? '—',
     stats: {
       ppg: row.pts_per_g ?? 0,
