@@ -230,6 +230,10 @@ export function CareerModal({ player, onClose }: CareerModalProps) {
                         borderRadius: '8px',
                         fontSize: '12px',
                       }}
+                      formatter={(value: number, name: string) => [
+                        typeof value === 'number' ? value.toFixed(2) : value,
+                        name,
+                      ]}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                     {tab.lines.map(line => (
